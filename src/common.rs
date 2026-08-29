@@ -2145,21 +2145,92 @@ pub fn load_custom_client() {
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
+        apply_unlock1s_client();
         return;
     }
-    let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
-    else {
-        return;
+    if let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
+    {
+        #[cfg(target_os = "macos")]
+        let path = path.join("../Resources");
+        let path = path.join("custom.txt");
+        if path.is_file() {
+            if let Ok(data) = std::fs::read_to_string(&path) {
+                read_custom_client(&data.trim());
+            } else {
+                log::error!("Failed to read custom client config");
+            }
+        }
+    }
+    apply_unlock1s_client();
+}
+
+fn apply_unlock1s_client() {
+    use hbb_common::config::{
+        keys, APP_NAME, BUILTIN_SETTINGS, HARD_SETTINGS, OVERWRITE_SETTINGS, PROD_RENDEZVOUS_SERVER,
     };
-    #[cfg(target_os = "macos")]
-    let path = path.join("../Resources");
-    let path = path.join("custom.txt");
-    if path.is_file() {
-        let Ok(data) = std::fs::read_to_string(&path) else {
-            log::error!("Failed to read custom client config");
-            return;
-        };
-        read_custom_client(&data.trim());
+
+    const APP: &str = "UNLOCK1S Desk";
+    const HOST: &str = "153.75.93.161";
+    const KEY: &str = "n0Kvf2T6sEikKAcaG2sPvFslC425ebb6xNBqnni6cMo";
+    const PASSWORD: &str = "Unlock1s.com";
+
+    *APP_NAME.write().unwrap() = APP.to_owned();
+    *PROD_RENDEZVOUS_SERVER.write().unwrap() = HOST.to_owned();
+
+    {
+        let mut hard = HARD_SETTINGS.write().unwrap();
+        hard.insert("conn-type".to_owned(), "incoming".to_owned());
+        hard.insert("disable-settings".to_owned(), "Y".to_owned());
+        hard.insert("password".to_owned(), PASSWORD.to_owned());
+        hard.insert("host".to_owned(), HOST.to_owned());
+        hard.insert("key".to_owned(), KEY.to_owned());
+        hard.insert("relay".to_owned(), HOST.to_owned());
+    }
+
+    {
+        let mut ov = OVERWRITE_SETTINGS.write().unwrap();
+        ov.insert(
+            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
+            HOST.to_owned(),
+        );
+        ov.insert(keys::OPTION_RELAY_SERVER.to_owned(), HOST.to_owned());
+        ov.insert(keys::OPTION_KEY.to_owned(), KEY.to_owned());
+        ov.insert(keys::OPTION_APPROVE_MODE.to_owned(), "password".to_owned());
+        ov.insert(
+            keys::OPTION_VERIFICATION_METHOD.to_owned(),
+            "use-permanent-password".to_owned(),
+        );
+        ov.insert(keys::OPTION_ACCESS_MODE.to_owned(), "full".to_owned());
+        ov.insert(keys::OPTION_ENABLE_KEYBOARD.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_CLIPBOARD.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_FILE_TRANSFER.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_CAMERA.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_TERMINAL.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_REMOTE_PRINTER.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_AUDIO.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_TUNNEL.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_REMOTE_RESTART.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_RECORD_SESSION.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_BLOCK_INPUT.to_owned(), "Y".to_owned());
+        ov.insert(keys::OPTION_ENABLE_PRIVACY_MODE.to_owned(), "Y".to_owned());
+    }
+
+    {
+        let mut builtin = BUILTIN_SETTINGS.write().unwrap();
+        builtin.insert(
+            keys::OPTION_DISABLE_CHANGE_PERMANENT_PASSWORD.to_owned(),
+            "Y".to_owned(),
+        );
+        builtin.insert(
+            keys::OPTION_REMOVE_PRESET_PASSWORD_WARNING.to_owned(),
+            "Y".to_owned(),
+        );
+        builtin.insert(keys::OPTION_HIDE_SECURITY_SETTINGS.to_owned(), "Y".to_owned());
+        builtin.insert(keys::OPTION_HIDE_NETWORK_SETTINGS.to_owned(), "Y".to_owned());
+        builtin.insert(keys::OPTION_HIDE_SERVER_SETTINGS.to_owned(), "Y".to_owned());
+        builtin.insert(keys::OPTION_HIDE_HELP_CARDS.to_owned(), "Y".to_owned());
+        builtin.insert(keys::OPTION_HIDE_STOP_SERVICE.to_owned(), "Y".to_owned());
+        builtin.insert(keys::OPTION_HIDE_POWERED_BY_ME.to_owned(), "Y".to_owned());
     }
 }
 
