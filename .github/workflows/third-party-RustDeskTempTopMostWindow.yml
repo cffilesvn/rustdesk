@@ -55,7 +55,7 @@ jobs:
         run: |
           $path = "RustDeskTempTopMostWindow/WindowInjection/dllmain.cpp"
           $src = Get-Content -Path $path -Raw
-          $start = $src.IndexOf('VOID OnPaintGdiPlus(HWND hwnd, HDC hdc)')
+          $start = $src.LastIndexOf('VOID OnPaintGdiPlus(HWND hwnd, HDC hdc)')
           if ($start -lt 0) {
             throw "OnPaintGdiPlus not found in $path"
           }
