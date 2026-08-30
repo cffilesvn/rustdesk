@@ -3926,15 +3926,64 @@ fn get_import_config(exe: &str) -> String {
     let config_path = Config::file();
     let config_path = escape_nested_cmd_ampersands(config_path.to_str().unwrap_or(""));
     format!("
-sc stop {app_name}
-sc delete {app_name}
-sc create {app_name} binpath= \"\\\"{exe}\\\" --import-config \\\"{config_path}\\\"\" start= auto DisplayName= \"{app_name} Service\"
-sc start {app_name}
-sc stop {app_name}
-sc delete {app_name}
+sc stop {svc}
+sc delete {svc}
+sc create {svc} binpath= \"\\\"{exe}\\\" --import-config \\\"{config_path}\\\"\" start= auto DisplayName= \"{app_name} Service\"
+sc start {svc}
+sc stop {svc}
+sc delete {svc}
 ",
+    svc = sc_app_name(),
     app_name = crate::get_app_name(),
 )
+}
+
+fn sc_app_name() -> String {
+    let name = crate::get_app_name();
+    if name.contains(char::is_whitespace) {
+        format!("\"{name}\"")
+    } else {
+        name
+    }
+}
+
+pub fn ensure_user_startup_shortcut() {
+    if !crate::common::is_custom_client() {
+        return;
+    }
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|arg| {
+        arg == "--service"
+            || arg == "--portable-service"
+            || arg.starts_with("--portable-service")
+            || arg == "--import-config"
+    }) {
+        return;
+    }
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let Some(exe) = exe.to_str() else {
+        return;
+    };
+    let Some(appdata) = std::env::var_os("APPDATA") else {
+        return;
+    };
+    let dir = PathBuf::from(appdata).join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
+    let path = dir.join(format!("{} Tray.lnk", crate::get_app_name()));
+    if path.exists() {
+        return;
+    }
+    let Ok(bytes) = shortcut_bytes(exe, Some("--tray"), None) else {
+        return;
+    };
+    if let Err(err) = std::fs::create_dir_all(&dir) {
+        log::warn!("Failed to create user Startup folder {:?}: {err}", dir);
+        return;
+    }
+    if let Err(err) = std::fs::write(&path, bytes) {
+        log::warn!("Failed to write user Startup shortcut {:?}: {err}", path);
+    }
 }
 
 fn get_create_service(exe: &str) -> String {
@@ -3949,9 +3998,10 @@ if exist \"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\{ap
     } else {
         let exe = escape_nested_cmd_ampersands(exe);
         format!("
-sc create {app_name} binpath= \"\\\"{exe}\\\" --service\" start= auto DisplayName= \"{app_name} Service\"
-sc start {app_name}
+sc create {svc} binpath= \"\\\"{exe}\\\" --service\" start= auto DisplayName= \"{app_name} Service\"
+sc start {svc}
 ",
+    svc = sc_app_name(),
     app_name = crate::get_app_name())
     }
 }

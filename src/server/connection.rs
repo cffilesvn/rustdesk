@@ -1825,7 +1825,7 @@ impl Connection {
                 "is_installed".into(),
                 json!(crate::platform::is_installed()),
             );
-            if crate::platform::is_installed() {
+            if crate::platform::is_installed() || crate::is_custom_client() {
                 platform_additions.extend(virtual_display_manager::get_platform_additions());
             }
             platform_additions.insert(
@@ -2044,6 +2044,32 @@ impl Connection {
         } else if sub_service {
             if !wait_session_id_confirm {
                 self.try_sub_monitor_services();
+            }
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+            if crate::is_custom_client() && self.privacy_mode {
+                let impl_key = privacy_mode::DEFAULT_PRIVACY_MODE_IMPL.clone();
+                if !impl_key.is_empty() {
+                    self.turn_on_privacy(impl_key).await;
+                }
+            }
+            #[cfg(windows)]
+            if crate::is_custom_client()
+                && !portable_client::running()
+                && !crate::platform::is_self_service_running()
+            {
+                if let Err(e) =
+                    portable_client::start_portable_service(portable_client::StartPara::Direct)
+                {
+                    log::warn!("Failed to start portable service for elevated input: {e}");
+                }
+            }
+            #[cfg(windows)]
+            if crate::is_custom_client() {
+                let _ = hbb_common::tokio::task::spawn_blocking(|| {
+                    if let Err(e) = virtual_display_manager::ensure_one_virtual_display() {
+                        log::warn!("Failed to create virtual display: {e}");
+                    }
+                });
             }
         }
         true

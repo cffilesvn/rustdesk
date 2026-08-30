@@ -1690,9 +1690,15 @@ fn process_chr(en: &mut Enigo, chr: u32, down: bool, _hotkey: bool) {
 
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     if !_hotkey {
-        if down {
-            if let Ok(chr) = char::try_from(chr) {
-                en.key_sequence(&chr.to_string());
+        if let Ok(ch) = char::try_from(chr) {
+            let key = char_value_to_key(chr);
+            if down {
+                if en.key_down(key).is_ok() {
+                    return;
+                }
+                en.key_sequence(&ch.to_string());
+            } else {
+                en.key_up(key);
             }
         }
         return;
@@ -1751,6 +1757,17 @@ fn process_seq(en: &mut Enigo, sequence: &str) {
         return;
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        if sequence.chars().all(|c| c.is_ascii() && !c.is_ascii_control()) {
+            for ch in sequence.chars() {
+                let key = Key::Layout(ch);
+                let _ = en.key_down(key);
+                en.key_up(key);
+            }
+            return;
+        }
+    }
     en.key_sequence(&sequence);
 }
 

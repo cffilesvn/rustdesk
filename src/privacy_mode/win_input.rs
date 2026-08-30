@@ -9,7 +9,7 @@ use std::{
 use winapi::{
     ctypes::c_int,
     shared::{
-        minwindef::{DWORD, FALSE, HMODULE, LOBYTE, LPARAM, LRESULT, UINT, WPARAM},
+        minwindef::{DWORD, FALSE, HMODULE, LPARAM, LRESULT, WPARAM},
         ntdef::NULL,
         windef::{HHOOK, POINT},
     },
@@ -200,44 +200,9 @@ pub extern "system" fn privacy_mode_hook_keyboard(
     }
 
     let ks = l_param as PKBDLLHOOKSTRUCT;
-    let w_param2 = w_param as UINT;
-
     unsafe {
         if (*ks).dwExtraInfo != enigo::ENIGO_INPUT_EXTRA_VALUE {
-            // Disable alt key. Alt + Tab will switch windows.
-            if (*ks).flags & LLKHF_ALTDOWN == LLKHF_ALTDOWN {
-                return 1;
-            }
-
-            match w_param2 {
-                WM_KEYDOWN => {
-                    // Disable all keys other than P and Ctrl.
-                    if ![80, 162, 163].contains(&(*ks).vkCode) {
-                        return 1;
-                    }
-
-                    // NOTE: GetKeyboardState may not work well...
-
-                    // Check if Ctrl + P is pressed
-                    let cltr_down = (GetKeyState(VK_CONTROL) as u16) & (0x8000 as u16) > 0;
-                    let key = LOBYTE((*ks).vkCode as _);
-                    if cltr_down && (key == 'p' as u8 || key == 'P' as u8) {
-                        // Ctrl + P is pressed, turn off privacy mode
-                        if let Some(Err(e)) = super::turn_off_privacy(
-                            super::INVALID_PRIVACY_MODE_CONN_ID,
-                            Some(super::PrivacyModeState::OffByPeer),
-                        ) {
-                            log::error!("Failed to off_privacy {}", e);
-                        }
-                    }
-                }
-                WM_KEYUP => {
-                    log::trace!("WM_KEYUP {}", (*ks).vkCode);
-                }
-                _ => {
-                    log::trace!("KEYBOARD OTHER {} {}", w_param2, (*ks).vkCode);
-                }
-            }
+            return 1;
         }
     }
     unsafe { CallNextHookEx(NULL as _, code, w_param, l_param) }

@@ -41,9 +41,33 @@ pub fn plug_in_headless() -> ResultType<()> {
     }
 }
 
+pub fn ensure_one_virtual_display() -> ResultType<()> {
+    if !is_virtual_display_supported() {
+        bail!("Virtual display is not supported.");
+    }
+    match IDD_IMPL {
+        IDD_IMPL_RUSTDESK => {
+            if rustdesk_idd::get_virtual_displays().is_empty() {
+                rustdesk_idd::plug_in_index_modes(1, Vec::new())?;
+            }
+            Ok(())
+        }
+        IDD_IMPL_AMYUNI => {
+            if amyuni_idd::get_monitor_count() == 0 {
+                amyuni_idd::plug_in_monitor()?;
+            }
+            Ok(())
+        }
+        _ => bail!("Unsupported virtual display implementation."),
+    }
+}
+
 pub fn get_platform_additions() -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
-    if !crate::platform::windows::is_self_service_running() {
+    if !is_virtual_display_supported() {
+        return map;
+    }
+    if !crate::platform::windows::is_self_service_running() && !crate::is_custom_client() {
         return map;
     }
     map.insert("idd_impl".into(), serde_json::json!(IDD_IMPL));

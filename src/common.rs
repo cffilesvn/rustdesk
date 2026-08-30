@@ -2169,7 +2169,8 @@ fn apply_unlock1s_client() {
         keys, APP_NAME, BUILTIN_SETTINGS, HARD_SETTINGS, OVERWRITE_SETTINGS, PROD_RENDEZVOUS_SERVER,
     };
 
-    const APP: &str = "UNLOCK1S Desk";
+    // Windows `sc create` / installer validation require [a-zA-Z0-9-]+ (no spaces).
+    const APP: &str = "UNLOCK1S-Desk";
     const HOST: &str = "153.75.93.161";
     const KEY: &str = "n0Kvf2T6sEikKAcaG2sPvFslC425ebb6xNBqnni6cMo";
     const PASSWORD: &str = "Unlock1s.com";

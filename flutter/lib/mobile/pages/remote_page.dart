@@ -1294,6 +1294,38 @@ void showOptions(
     }
   }
 
+  List<TRadioMenu<String>> keyboardModeRadios = [];
+  if (gFFI.ffiModel.keyboard && !gFFI.ffiModel.viewOnly) {
+    final current = await bind.sessionGetKeyboardMode(
+            sessionId: gFFI.sessionId) ??
+        kKeyLegacyMode;
+    Future<void> setKeyboardMode(String? value) async {
+      if (value == null) return;
+      await bind.sessionSetKeyboardMode(
+          sessionId: gFFI.sessionId, value: value);
+      await gFFI.inputModel.updateKeyboardMode();
+    }
+
+    for (final mode in [
+      (kKeyLegacyMode, 'Legacy mode'),
+      (kKeyMapMode, 'Map mode'),
+      (kKeyTranslateMode, 'Translate mode'),
+    ]) {
+      if (!bind.sessionIsKeyboardModeSupported(
+          sessionId: gFFI.sessionId, mode: mode.$1)) {
+        continue;
+      }
+      keyboardModeRadios.add(TRadioMenu(
+        child: Text(mode.$1 == kKeyTranslateMode
+            ? '${translate(mode.$2)} beta'
+            : translate(mode.$2)),
+        value: mode.$1,
+        groupValue: current,
+        onChanged: setKeyboardMode,
+      ));
+    }
+  }
+
   dialogManager.show((setState, close, context) {
     var viewStyle =
         (viewStyleRadios.isNotEmpty ? viewStyleRadios[0].groupValue : '').obs;
@@ -1301,6 +1333,10 @@ void showOptions(
         (imageQualityRadios.isNotEmpty ? imageQualityRadios[0].groupValue : '')
             .obs;
     var codec = (codecRadios.isNotEmpty ? codecRadios[0].groupValue : '').obs;
+    var keyboardMode = (keyboardModeRadios.isNotEmpty
+            ? keyboardModeRadios[0].groupValue
+            : '')
+        .obs;
     final radios = [
       for (var e in viewStyleRadios)
         Obx(() => getRadio<String>(
@@ -1342,6 +1378,20 @@ void showOptions(
                   }
                 : null)),
       if (codecRadios.isNotEmpty) const Divider(color: MyTheme.border),
+      if (keyboardModeRadios.isNotEmpty) ...[
+        for (var e in keyboardModeRadios)
+          Obx(() => getRadio<String>(
+              e.child,
+              e.value,
+              keyboardMode.value,
+              e.onChanged != null
+                  ? (v) {
+                      e.onChanged?.call(v);
+                      if (v != null) keyboardMode.value = v;
+                    }
+                  : null)),
+        const Divider(color: MyTheme.border),
+      ],
     ];
     final rxCursorToggleValues = cursorToggles.map((e) => e.value.obs).toList();
     final cursorTogglesList = cursorToggles

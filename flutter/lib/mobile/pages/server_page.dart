@@ -189,6 +189,9 @@ class _ServerPageState extends State<ServerPage> {
       await gFFI.serverModel.fetchID();
     });
     gFFI.serverModel.checkAndroidPermission();
+    if (bind.isCustomClient()) {
+      gFFI.invokeMethod(AndroidChannel.kSetStartOnBootOpt, true);
+    }
   }
 
   @override

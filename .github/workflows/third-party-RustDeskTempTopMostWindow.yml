@@ -41,13 +41,47 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
 
+      - name: Checkout rustdesk
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
       - name: Download the source code
         run: |
           git clone https://github.com/rustdesk-org/RustDeskTempTopMostWindow RustDeskTempTopMostWindow
+          cd RustDeskTempTopMostWindow
+          git checkout ecd8d6a139eee76845ea66423fb739af450fda90
+
+      - name: Customize privacy overlay text
+        shell: pwsh
+        run: |
+          $path = "RustDeskTempTopMostWindow/WindowInjection/dllmain.cpp"
+          $src = Get-Content -Path $path -Raw
+          $start = $src.IndexOf('VOID OnPaintGdiPlus(HWND hwnd, HDC hdc)')
+          if ($start -lt 0) {
+            throw "OnPaintGdiPlus not found in $path"
+          }
+          $brace = $src.IndexOf('{', $start)
+          $depth = 0
+          $end = -1
+          for ($i = $brace; $i -lt $src.Length; $i++) {
+            if ($src[$i] -eq '{') { $depth++ }
+            elseif ($src[$i] -eq '}') {
+              $depth--
+              if ($depth -eq 0) {
+                $end = $i
+                break
+              }
+            }
+          }
+          if ($end -lt 0) {
+            throw "Failed to find end of OnPaintGdiPlus in $path"
+          }
+          $replacement = (Get-Content -Path ".github/patches/privacy_overlay_onpaint.cpp" -Raw).TrimEnd()
+          $updated = $src.Substring(0, $start) + $replacement + $src.Substring($end + 1)
+          Set-Content -Path $path -Value $updated -NoNewline
 
       - name: Build the project
         run: |
-          cd RustDeskTempTopMostWindow && git checkout ecd8d6a139eee76845ea66423fb739af450fda90
+          cd RustDeskTempTopMostWindow
           msbuild ${{ env.project_path }} -p:Configuration=${{ inputs.configuration }} -p:Platform=${{ inputs.platform }} /p:TargetVersion=${{ inputs.target_version }}
 
       - name: Archive build artifacts

@@ -1241,9 +1241,6 @@ bool showVirtualDisplayMenu(FFI ffi) {
   if (ffi.ffiModel.pi.platform != kPeerPlatformWindows) {
     return false;
   }
-  if (!ffi.ffiModel.pi.isInstalled) {
-    return false;
-  }
   if (ffi.ffiModel.pi.isRustDeskIdd || ffi.ffiModel.pi.isAmyuniIdd) {
     return true;
   }

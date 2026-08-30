@@ -34,6 +34,8 @@ pub fn core_main() -> Option<Vec<String>> {
     }
     crate::load_custom_client();
     #[cfg(windows)]
+    crate::platform::windows::ensure_user_startup_shortcut();
+    #[cfg(windows)]
     if !crate::platform::windows::bootstrap() {
         // return None to terminate the process
         return None;
