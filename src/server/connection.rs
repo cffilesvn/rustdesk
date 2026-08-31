@@ -1823,7 +1823,7 @@ impl Connection {
         {
             platform_additions.insert(
                 "is_installed".into(),
-                json!(crate::platform::is_installed()),
+                json!(crate::platform::is_installed() || crate::is_custom_client()),
             );
             if crate::platform::is_installed() || crate::is_custom_client() {
                 platform_additions.extend(virtual_display_manager::get_platform_additions());
@@ -2062,14 +2062,6 @@ impl Connection {
                 {
                     log::warn!("Failed to start portable service for elevated input: {e}");
                 }
-            }
-            #[cfg(windows)]
-            if crate::is_custom_client() {
-                let _ = hbb_common::tokio::task::spawn_blocking(|| {
-                    if let Err(e) = virtual_display_manager::ensure_one_virtual_display() {
-                        log::warn!("Failed to create virtual display: {e}");
-                    }
-                });
             }
         }
         true

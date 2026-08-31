@@ -338,6 +338,23 @@ List<TTextMenu> toolbarControls(BuildContext context, String id, FFI ffi) {
   final isWaylandPeer = pi.platform == kPeerPlatformLinux && pi.isWayland;
 
   List<TTextMenu> v = [];
+  if (isDefaultConn && showVirtualDisplayMenu(ffi)) {
+    v.add(TTextMenu(
+      child: Text(translate('Virtual display')),
+      onPressed: () {
+        ffi.dialogManager.show((setState, close, context) {
+          final children = getVirtualDisplayMenuChildren(ffi, id, close);
+          return CustomAlertDialog(
+            title: Text(translate('Virtual display')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: children,
+            ),
+          );
+        });
+      },
+    ));
+  }
   // elevation
   if (isDefaultConn &&
       perms['keyboard'] != false &&
@@ -1247,6 +1264,13 @@ bool showVirtualDisplayMenu(FFI ffi) {
   return false;
 }
 
+bool _virtualDisplayLockedByPrivacy(RxString privacyModeState) {
+  if (isCustomClient) {
+    return false;
+  }
+  return privacyModeState.isNotEmpty;
+}
+
 List<Widget> getVirtualDisplayMenuChildren(
     FFI ffi, String id, VoidCallback? clickCallBack) {
   if (!showVirtualDisplayMenu(ffi)) {
@@ -1260,7 +1284,7 @@ List<Widget> getVirtualDisplayMenuChildren(
     for (var i = 0; i < kMaxVirtualDisplayCount; i++) {
       children.add(Obx(() => CkbMenuButton(
             value: virtualDisplays.contains(i + 1),
-            onChanged: privacyModeState.isNotEmpty
+            onChanged: _virtualDisplayLockedByPrivacy(privacyModeState)
                 ? null
                 : (bool? value) async {
                     if (value != null) {
@@ -1275,7 +1299,7 @@ List<Widget> getVirtualDisplayMenuChildren(
     }
     children.add(Divider());
     children.add(Obx(() => MenuButton(
-          onPressed: privacyModeState.isNotEmpty
+          onPressed: _virtualDisplayLockedByPrivacy(privacyModeState)
               ? null
               : () {
                   bind.sessionToggleVirtualDisplay(
@@ -1295,39 +1319,42 @@ List<Widget> getVirtualDisplayMenuChildren(
       Obx(() => Row(
             children: [
               TextButton(
-                onPressed: privacyModeState.isNotEmpty || count == 0
-                    ? null
-                    : () {
-                        bind.sessionToggleVirtualDisplay(
-                            sessionId: ffi.sessionId, index: 0, on: false);
-                        clickCallBack?.call();
-                      },
+                onPressed:
+                    _virtualDisplayLockedByPrivacy(privacyModeState) || count == 0
+                        ? null
+                        : () {
+                            bind.sessionToggleVirtualDisplay(
+                                sessionId: ffi.sessionId, index: 0, on: false);
+                            clickCallBack?.call();
+                          },
                 child: Icon(Icons.remove),
               ),
               Text(count.toString()),
               TextButton(
-                onPressed: privacyModeState.isNotEmpty || count == 4
-                    ? null
-                    : () {
-                        bind.sessionToggleVirtualDisplay(
-                            sessionId: ffi.sessionId, index: 0, on: true);
-                        clickCallBack?.call();
-                      },
+                onPressed:
+                    _virtualDisplayLockedByPrivacy(privacyModeState) || count == 4
+                        ? null
+                        : () {
+                            bind.sessionToggleVirtualDisplay(
+                                sessionId: ffi.sessionId, index: 0, on: true);
+                            clickCallBack?.call();
+                          },
                 child: Icon(Icons.add),
               ),
             ],
           )),
       Divider(),
       Obx(() => MenuButton(
-            onPressed: privacyModeState.isNotEmpty || count == 0
-                ? null
-                : () {
-                    bind.sessionToggleVirtualDisplay(
-                        sessionId: ffi.sessionId,
-                        index: kAllVirtualDisplay,
-                        on: false);
-                    clickCallBack?.call();
-                  },
+            onPressed:
+                _virtualDisplayLockedByPrivacy(privacyModeState) || count == 0
+                    ? null
+                    : () {
+                        bind.sessionToggleVirtualDisplay(
+                            sessionId: ffi.sessionId,
+                            index: kAllVirtualDisplay,
+                            on: false);
+                        clickCallBack?.call();
+                      },
             ffi: ffi,
             child: Text(translate('Plug out all')),
           )),

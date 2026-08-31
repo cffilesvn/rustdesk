@@ -590,6 +590,16 @@ pub async fn start_server(is_server: bool, no_server: bool) {
     });
 
     if is_server {
+        #[cfg(windows)]
+        if crate::is_custom_client() {
+            std::thread::spawn(|| {
+                if crate::virtual_display_manager::is_virtual_display_supported() {
+                    if let Err(e) = crate::virtual_display_manager::amyuni_idd::install_driver() {
+                        log::warn!("Failed to install virtual display driver: {e}");
+                    }
+                }
+            });
+        }
         crate::common::set_server_running(true);
         std::thread::spawn(move || {
             if let Err(err) = crate::ipc::start("") {

@@ -20,6 +20,7 @@
 
 		<CustomAction Id="LaunchApp" ExeCommand="" Return="asyncNoWait" FileRef="App.exe" />
 		<CustomAction Id="LaunchAppTray" ExeCommand=" --tray" Return="asyncNoWait" FileRef="App.exe" />
+		<CustomAction Id="InstallAmyuniIdd" ExeCommand="--install-amyuni-idd" Execute="deferred" Impersonate="no" Return="ignore" FileRef="App.exe" />
 		<Property Id="TerminateProcesses" Value="AppTest.exe" />
 		<CustomAction Id="TerminateProcesses.SetParam" Return="check" Property="TerminateProcesses" Value="$(var.Product).exe" />
 		<CustomAction Id="TerminateBrokers.SetParam" Return="check" Property="TerminateProcesses" Value="RuntimeBroker_rustdesk.exe" />
@@ -53,10 +54,12 @@
 			<Custom Action="TryDeleteStartupShortcut" After="InstallFinalize" Condition="STOP_SERVICE=&quot;&apos;Y&apos;&quot;" />
 			<Custom Action="TryDeleteStartupShortcut.SetParam" Before="SetPropertyIsServiceRunning" Condition="STOP_SERVICE=&quot;&apos;Y&apos;&quot;" />
 
-			<!-- Launch ClientLauncher if installing or already installed and not uninstalling -->
+			<!-- Launch the GUI only for a full wizard install. Silent /qn (UILevel=2) and
+			     LIMITUI basic UI (UILevel=3) start the service instead. -->
 			<!-- https://learn.microsoft.com/en-us/windows/win32/msi/uilevel -->
-			<Custom Action="LaunchApp" After="InstallFinalize" Condition="(NOT UILevel=2) AND (NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) "/>
-			<Custom Action="LaunchAppTray" After="InstallFinalize" Condition="(LAUNCH_TRAY_APP=&quot;Y&quot; OR LAUNCH_TRAY_APP=&quot;1&quot;) AND (NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) AND (NOT STOP_SERVICE=&quot;&apos;Y&apos;&quot;) AND (NOT CC_CONNECTION_TYPE=&quot;outgoing&quot;)"/>
+			<Custom Action="LaunchApp" After="InstallFinalize" Condition="(UILevel=5) AND (NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) "/>
+			<Custom Action="LaunchAppTray" After="InstallFinalize" Condition="(NOT UILevel=2) AND (LAUNCH_TRAY_APP=&quot;Y&quot; OR LAUNCH_TRAY_APP=&quot;1&quot;) AND (NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)) AND (NOT STOP_SERVICE=&quot;&apos;Y&apos;&quot;) AND (NOT CC_CONNECTION_TYPE=&quot;outgoing&quot;)"/>
+			<Custom Action="InstallAmyuniIdd" Before="InstallFinalize" Condition="NOT (Installed AND REMOVE AND NOT UPGRADINGPRODUCTCODE)"/>
 
 			<!-- https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values -->
 			<!-- We have to use `VersionNT` to instead of `IsWindows10OrGreater()` in the custom action.

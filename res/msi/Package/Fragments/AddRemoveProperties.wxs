@@ -10,6 +10,11 @@
 		<Property Id="STOP_SERVICE" Value="&apos;Y&apos;" />
 
 		<Property Id="LAUNCH_TRAY_APP" Value="Y" />
+		<Property Id="LIMITUI" Value="1" />
+		<Property Id="LicenseAccepted" Value="1" />
+		<Property Id="ALLUSERS" Value="1" />
+		<Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+		<Property Id="REBOOT" Value="ReallySuppress" />
 
 		<!--
 		Support entries shown when clicking "Click here for support information"

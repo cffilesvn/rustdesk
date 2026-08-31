@@ -305,6 +305,10 @@ pub fn core_main() -> Option<Vec<String>> {
                     _is_run_as_system,
                 );
                 return None;
+            } else if args[0] == "--install-amyuni-idd" {
+                #[cfg(windows)]
+                hbb_common::allow_err!(crate::virtual_display_manager::amyuni_idd::install_driver());
+                return None;
             } else if args[0] == "--uninstall-amyuni-idd" {
                 #[cfg(windows)]
                 hbb_common::allow_err!(

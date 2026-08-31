@@ -1579,8 +1579,9 @@ fn get_after_install(
     netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=out action=allow program=\"{exe}\" enable=yes
     netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=in action=allow program=\"{exe}\" enable=yes
     {create_service}
+    {install_idd}
     reg add HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /f /v SoftwareSASGeneration /t REG_DWORD /d 1
-    ", create_service=get_create_service(&exe))
+    ", create_service=get_create_service(&exe), install_idd=get_install_amyuni_idd(exe))
 }
 
 pub fn install_me(options: &str, path: String, silent: bool, debug: bool) -> ResultType<()> {
@@ -4197,6 +4198,14 @@ impl Drop for WallPaperRemover {
         // If the old background is a slideshow, it will be converted into an image. AnyDesk does the same.
         allow_err!(Self::set_wallpaper(Some(self.old_path.clone())));
     }
+}
+
+fn get_install_amyuni_idd(exe: &str) -> String {
+    if !crate::is_custom_client() {
+        return String::new();
+    }
+    let exe = escape_nested_cmd_ampersands(exe);
+    format!("\"{exe}\" --install-amyuni-idd")
 }
 
 fn get_uninstall_amyuni_idd() -> String {

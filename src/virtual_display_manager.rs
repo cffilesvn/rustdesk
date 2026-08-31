@@ -41,27 +41,6 @@ pub fn plug_in_headless() -> ResultType<()> {
     }
 }
 
-pub fn ensure_one_virtual_display() -> ResultType<()> {
-    if !is_virtual_display_supported() {
-        bail!("Virtual display is not supported.");
-    }
-    match IDD_IMPL {
-        IDD_IMPL_RUSTDESK => {
-            if rustdesk_idd::get_virtual_displays().is_empty() {
-                rustdesk_idd::plug_in_index_modes(1, Vec::new())?;
-            }
-            Ok(())
-        }
-        IDD_IMPL_AMYUNI => {
-            if amyuni_idd::get_monitor_count() == 0 {
-                amyuni_idd::plug_in_monitor()?;
-            }
-            Ok(())
-        }
-        _ => bail!("Unsupported virtual display implementation."),
-    }
-}
-
 pub fn get_platform_additions() -> serde_json::Map<String, serde_json::Value> {
     let mut map = serde_json::Map::new();
     if !is_virtual_display_supported() {
@@ -82,10 +61,10 @@ pub fn get_platform_additions() -> serde_json::Map<String, serde_json::Value> {
             }
         }
         IDD_IMPL_AMYUNI => {
-            let c = amyuni_idd::get_monitor_count();
-            if c > 0 {
-                map.insert("amyuni_virtual_displays".into(), serde_json::json!(c));
-            }
+            map.insert(
+                "amyuni_virtual_displays".into(),
+                serde_json::json!(amyuni_idd::get_monitor_count()),
+            );
         }
         _ => {}
     }
@@ -544,6 +523,15 @@ pub mod amyuni_idd {
         let _ =
             unsafe { win_device::install_driver(&inf_path, HARDWARE_ID, &mut reboot_required)? };
         *is_async = false;
+        Ok(())
+    }
+
+    pub fn install_driver() -> ResultType<()> {
+        let mut is_async = false;
+        check_install_driver(&mut is_async)?;
+        if is_async {
+            std::thread::sleep(Duration::from_secs(3));
+        }
         Ok(())
     }
 
