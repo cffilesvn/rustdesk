@@ -31,14 +31,14 @@ VOID OnPaintGdiPlus(HWND hwnd, HDC hdc)
 	Gdiplus::RectF warnRect(40, client_h * 0.30f + 160, client_w - 80, 48);
 	graphics.DrawString(L"UNLOCK1S", -1, &titleFont, titleRect, &format, &brush);
 	graphics.DrawString(
-		L"D\x1ECBch v\x1EE5 \x0111ang x\x1EED l\x00FD, vui l\x00F2ng ki\x00EAn nh\x1EABn ch\x1EDD \x0111\x1EE3i",
+		L"D\u1ECBch v\u1EE5 \u0111ang x\u1EED l\u00FD, vui l\u00F2ng ki\u00EAn nh\u1EABn ch\u1EDD \u0111\u1EE3i",
 		-1,
 		&subtitleFont,
 		subRect,
 		&format,
 		&brush);
 	graphics.DrawString(
-		L"Kh\x00F4ng thao t\x00E1c v\x00E0o m\x00E1y t\x00EDnh",
+		L"Kh\u00F4ng thao t\u00E1c v\u00E0o m\u00E1y t\u00EDnh",
 		-1,
 		&subtitleFont,
 		warnRect,
