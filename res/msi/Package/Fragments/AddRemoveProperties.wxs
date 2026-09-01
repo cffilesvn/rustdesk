@@ -12,7 +12,6 @@
 		<Property Id="LAUNCH_TRAY_APP" Value="Y" />
 		<Property Id="LIMITUI" Value="1" />
 		<Property Id="LicenseAccepted" Value="1" />
-		<Property Id="ALLUSERS" Value="1" />
 		<Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
 		<Property Id="REBOOT" Value="ReallySuppress" />
 
