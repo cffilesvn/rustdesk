@@ -1001,7 +1001,7 @@ async fn handle_fs(
             remove_file(path, id, file_num, tx).await;
         }
         ipc::FS::CreateDir { path, id } => {
-            create_dir(path, id, tx).await;
+            create_dir(resolve_desktop_drop_path(path), id, tx).await;
         }
         ipc::FS::NewWrite {
             path,
@@ -1012,6 +1012,7 @@ async fn handle_fs(
             total_size,
             conn_id,
         } => {
+            let path = resolve_desktop_drop_path(path);
             // Convert files to FileEntry
             let file_entries: Vec<FileEntry> = files
                 .drain(..)
@@ -1835,4 +1836,21 @@ mod tests {
 
         let _ = fs::remove_dir_all(&base_dir);
     }
+}
+
+fn resolve_desktop_drop_path(path: String) -> String {
+    const MARKER: &str = "{desktop}";
+    if !path.starts_with(MARKER) {
+        return path;
+    }
+    let rest = &path[MARKER.len()..];
+    #[cfg(windows)]
+    if let Ok(profile) = std::env::var("USERPROFILE") {
+        return format!("{profile}\\Desktop{rest}");
+    }
+    #[cfg(not(windows))]
+    if let Ok(home) = std::env::var("HOME") {
+        return format!("{home}/Desktop{rest}");
+    }
+    path
 }

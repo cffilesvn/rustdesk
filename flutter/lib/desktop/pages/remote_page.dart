@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +16,7 @@ import '../../common/widgets/remote_input.dart';
 import '../../common.dart';
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/toolbar.dart';
+import '../../models/file_model.dart';
 import '../../models/model.dart';
 import '../../models/input_model.dart';
 import '../../models/platform_model.dart';
@@ -130,6 +133,7 @@ class _RemotePageState extends State<RemotePage>
   Worker? _waylandKeyboardModeWorker;
   bool _waylandKeyboardModeNormalized = false;
   bool _waylandKeyboardModeNormalizing = false;
+  bool _fileDropHover = false;
 
   SessionID get sessionId => _ffi.sessionId;
 
@@ -996,9 +1000,66 @@ class _RemotePageState extends State<RemotePage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
-    return Stack(
+    final body = Stack(
       children: paints,
     );
+    if (_ffi.ffiModel.permissions['file'] == false) {
+      return body;
+    }
+    return DropTarget(
+      onDragEntered: (_) {
+        if (mounted) setState(() => _fileDropHover = true);
+      },
+      onDragExited: (_) {
+        if (mounted) setState(() => _fileDropHover = false);
+      },
+      onDragDone: (detail) {
+        if (mounted) setState(() => _fileDropHover = false);
+        _handleRemoteFileDrop(detail);
+      },
+      child: Stack(
+        children: [
+          body,
+          if (_fileDropHover)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black45,
+                  alignment: Alignment.center,
+                  child: Text(
+                    translate('Transfer file'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _handleRemoteFileDrop(DropDoneDetails detail) {
+    final items = SelectedItems(isLocal: true);
+    for (final file in detail.files) {
+      if (file.path.isEmpty) {
+        continue;
+      }
+      final isDir = FileSystemEntity.isDirectorySync(file.path);
+      items.add(Entry()
+        ..path = file.path
+        ..name = file.name
+        ..entryType = isDir ? 1 : 4
+        ..size = isDir ? 0 : File(file.path).lengthSync());
+    }
+    if (items.items.isEmpty) {
+      return;
+    }
+    showToast(translate('Transfer file'));
+    _ffi.fileModel.sendDroppedLocalFiles(items);
   }
 
   @override

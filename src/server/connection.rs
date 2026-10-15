@@ -3298,6 +3298,18 @@ impl Connection {
                             }
                         }
                     }
+                    if !handle_fa && crate::is_custom_client() && self.file {
+                        match fa.union.as_ref() {
+                            Some(file_action::Union::Receive(_))
+                            | Some(file_action::Union::Cancel(_))
+                            | Some(file_action::Union::SendConfirm(_))
+                            | Some(file_action::Union::Create(_))
+                            | Some(file_action::Union::ReadEmptyDirs(_)) => {
+                                handle_fa = true;
+                            }
+                            _ => {}
+                        }
+                    }
                     if handle_fa {
                         if self.delayed_read_dir.is_some() {
                             if let Some(file_action::Union::ReadDir(rd)) = fa.union {

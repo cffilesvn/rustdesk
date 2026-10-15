@@ -4,10 +4,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-windows-android-build:
+  build-client:
     uses: ./.github/workflows/flutter-build.yml
     secrets: inherit
     with:
       upload-artifact: true
       upload-tag: unlock1s-desk
       windows-android-only: true
+      unlock1s-role: client
+
+  build-host:
+    needs: build-client
+    uses: ./.github/workflows/flutter-build.yml
+    secrets: inherit
+    with:
+      upload-artifact: true
+      upload-tag: unlock1s-desk
+      windows-android-only: true
+      unlock1s-role: host

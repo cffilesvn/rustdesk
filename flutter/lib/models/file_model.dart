@@ -340,6 +340,20 @@ class FileModel {
       remoteController.createDirWithRemote(peerPath, true);
     }
   }
+
+  Future<void> sendDroppedLocalFiles(SelectedItems items) async {
+    if (parent.target?.ffiModel.permissions['file'] == false) {
+      return;
+    }
+    if (!items.isLocal || items.items.isEmpty) {
+      return;
+    }
+    final isPeerWindows =
+        parent.target?.ffiModel.pi.platform == kPeerPlatformWindows;
+    final dest = FileDirectory()..path = '{desktop}';
+    await localController.sendFiles(
+        items, DirectoryData(dest, DirectoryOptions(isWindows: isPeerWindows)));
+  }
 }
 
 class DirectoryData {

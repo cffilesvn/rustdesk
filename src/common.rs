@@ -2169,20 +2169,31 @@ fn apply_unlock1s_client() {
         keys, APP_NAME, BUILTIN_SETTINGS, HARD_SETTINGS, OVERWRITE_SETTINGS, PROD_RENDEZVOUS_SERVER,
     };
 
+    // `UNLOCK1S_ROLE=host` at compile time builds the outgoing operator app.
+    // Default / `client` stays incoming-only (ID board only) for the machine being controlled.
+    let is_host = option_env!("UNLOCK1S_ROLE")
+        .map(|s| s.eq_ignore_ascii_case("host"))
+        .unwrap_or(false);
+
     // Windows `sc create` / installer validation require [a-zA-Z0-9-]+ (no spaces).
-    const APP: &str = "UNLOCK1S-Desk";
+    let app = if is_host { "UNLOCK1S-Host" } else { "UNLOCK1S-Desk" };
     const HOST: &str = "153.75.93.161";
     const KEY: &str = "n0Kvf2T6sEikKAcaG2sPvFslC425ebb6xNBqnni6cMo";
     const PASSWORD: &str = "Unlock1s.com";
 
-    *APP_NAME.write().unwrap() = APP.to_owned();
+    *APP_NAME.write().unwrap() = app.to_owned();
     *PROD_RENDEZVOUS_SERVER.write().unwrap() = HOST.to_owned();
 
     {
         let mut hard = HARD_SETTINGS.write().unwrap();
-        hard.insert("conn-type".to_owned(), "incoming".to_owned());
+        hard.insert(
+            "conn-type".to_owned(),
+            if is_host { "outgoing" } else { "incoming" }.to_owned(),
+        );
         hard.insert("disable-settings".to_owned(), "Y".to_owned());
-        hard.insert("password".to_owned(), PASSWORD.to_owned());
+        if !is_host {
+            hard.insert("password".to_owned(), PASSWORD.to_owned());
+        }
         hard.insert("host".to_owned(), HOST.to_owned());
         hard.insert("key".to_owned(), KEY.to_owned());
         hard.insert("relay".to_owned(), HOST.to_owned());
