@@ -94,6 +94,10 @@ jobs:
     uses: ./.github/workflows/bridge.yml
 
   build-RustDeskTempTopMostWindow:
+    # ARM64 overlay DLL is only needed by the Windows-on-ARM Flutter MSI.
+    # windows-android-only ships x64 MSI + Android; skip ARM64 so a flaky
+    # windows-11-arm PCH OOM cannot block the x64 installer.
+    if: ${{ !inputs.windows-android-only || matrix.job.platform != 'ARM64' }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     strategy:
       fail-fast: false
@@ -117,6 +121,7 @@ jobs:
   build-for-windows-flutter:
     name: ${{ matrix.job.target }}
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
+    if: ${{ !inputs.windows-android-only || matrix.job.arch != 'aarch64' }}
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
