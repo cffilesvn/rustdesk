@@ -685,7 +685,41 @@ async fn test_nat_type_() -> ResultType<bool> {
     Ok(ok)
 }
 
+fn locked_rendezvous_host() -> Option<String> {
+    if let Some(h) = config::HARD_SETTINGS
+        .read()
+        .unwrap()
+        .get("host")
+        .filter(|s| !s.is_empty())
+        .cloned()
+    {
+        return Some(h);
+    }
+    if let Some(h) = config::OVERWRITE_SETTINGS
+        .read()
+        .unwrap()
+        .get(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER)
+        .filter(|s| !s.is_empty())
+        .cloned()
+    {
+        return Some(h);
+    }
+    let prod = config::PROD_RENDEZVOUS_SERVER.read().unwrap().clone();
+    if prod.is_empty() {
+        None
+    } else {
+        Some(prod)
+    }
+}
+
 pub async fn get_rendezvous_server(ms_timeout: u64) -> (String, Vec<String>, bool) {
+    // Outgoing Host must punch the locked self-hosted hbbs. IPC can still
+    // return the public server list; the `b.pop()` fallback below then
+    // replaces our ID server and hbbs answers LICENSE_MISMATCH.
+    if let Some(host) = locked_rendezvous_host() {
+        let a = check_port(host, RENDEZVOUS_PORT);
+        return (a, Vec::new(), true);
+    }
     #[cfg(any(target_os = "android", target_os = "ios"))]
     let (mut a, mut b) = get_rendezvous_server_(ms_timeout);
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -2113,6 +2147,9 @@ pub fn create_symmetric_key_msg(their_pk_b: [u8; 32]) -> (Bytes, Bytes, secretbo
 
 #[inline]
 pub fn using_public_server() -> bool {
+    if locked_rendezvous_host().is_some() {
+        return false;
+    }
     crate::get_custom_rendezvous_server(get_option("custom-rendezvous-server")).is_empty()
 }
 
@@ -2187,7 +2224,8 @@ pub fn load_custom_client() {
 
 fn apply_unlock1s_client() {
     use hbb_common::config::{
-        keys, APP_NAME, BUILTIN_SETTINGS, HARD_SETTINGS, OVERWRITE_SETTINGS, PROD_RENDEZVOUS_SERVER,
+        keys, APP_NAME, BUILTIN_SETTINGS, EXE_RENDEZVOUS_SERVER, HARD_SETTINGS, OVERWRITE_SETTINGS,
+        PROD_RENDEZVOUS_SERVER,
     };
 
     // `UNLOCK1S_ROLE=host` at compile time builds the outgoing operator app.
@@ -2204,6 +2242,7 @@ fn apply_unlock1s_client() {
 
     *APP_NAME.write().unwrap() = app.to_owned();
     *PROD_RENDEZVOUS_SERVER.write().unwrap() = HOST.to_owned();
+    *EXE_RENDEZVOUS_SERVER.write().unwrap() = HOST.to_owned();
 
     {
         let mut hard = HARD_SETTINGS.write().unwrap();
@@ -2264,6 +2303,12 @@ fn apply_unlock1s_client() {
         builtin.insert(keys::OPTION_HIDE_HELP_CARDS.to_owned(), "Y".to_owned());
         builtin.insert(keys::OPTION_HIDE_STOP_SERVICE.to_owned(), "Y".to_owned());
         builtin.insert(keys::OPTION_HIDE_POWERED_BY_ME.to_owned(), "Y".to_owned());
+        if is_host {
+            builtin.insert(
+                keys::OPTION_DEFAULT_CONNECT_PASSWORD.to_owned(),
+                PASSWORD.to_owned(),
+            );
+        }
     }
 }
 
