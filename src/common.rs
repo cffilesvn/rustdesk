@@ -1896,6 +1896,21 @@ pub fn decode64<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>, base64::DecodeError
     base64::decode(input)
 }
 
+fn canonical_rendezvous_key(key: &str) -> String {
+    // hbbs compares licence_key as an exact string. `id_ed25519.pub` is written
+    // with standard base64 padding (`=`). Sending the 43-char unpadded form is
+    // LICENSE_MISMATCH even though it decodes to the same 32 bytes.
+    if let Ok(raw) = decode64(key) {
+        if raw.len() == 32 {
+            return encode64(raw);
+        }
+        if raw.len() == 64 {
+            return encode64(&raw[32..]);
+        }
+    }
+    key.to_owned()
+}
+
 pub async fn get_key(sync: bool) -> String {
     // Outgoing connect uses get_key(false) → IPC options. That map can omit the
     // locked custom-client key, then this function falls back to RS_PUB_KEY and
@@ -1907,7 +1922,7 @@ pub async fn get_key(sync: bool) -> String {
         .filter(|s| !s.is_empty())
         .cloned()
     {
-        return k;
+        return canonical_rendezvous_key(&k);
     }
     if let Some(k) = config::OVERWRITE_SETTINGS
         .read()
@@ -1916,7 +1931,7 @@ pub async fn get_key(sync: bool) -> String {
         .filter(|s| !s.is_empty())
         .cloned()
     {
-        return k;
+        return canonical_rendezvous_key(&k);
     }
     #[cfg(windows)]
     if let Ok(lic) = crate::platform::windows::get_license_from_exe_name() {
@@ -2237,7 +2252,7 @@ fn apply_unlock1s_client() {
     // Windows `sc create` / installer validation require [a-zA-Z0-9-]+ (no spaces).
     let app = if is_host { "UNLOCK1S-Host" } else { "UNLOCK1S-Desk" };
     const HOST: &str = "153.75.93.161";
-    const KEY: &str = "n0Kvf2T6sEikKAcaG2sPvFslC425ebb6xNBqnni6cMo";
+    const KEY: &str = "n0Kvf2T6sEikKAcaG2sPvFslC425ebb6xNBqnni6cMo=";
     const PASSWORD: &str = "Unlock1s.com";
 
     *APP_NAME.write().unwrap() = app.to_owned();
