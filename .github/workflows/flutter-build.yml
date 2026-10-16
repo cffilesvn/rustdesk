@@ -94,10 +94,6 @@ jobs:
     uses: ./.github/workflows/bridge.yml
 
   build-RustDeskTempTopMostWindow:
-    # ARM64 overlay DLL is only needed by the Windows-on-ARM Flutter MSI.
-    # windows-android-only ships x64 MSI + Android; skip ARM64 so a flaky
-    # windows-11-arm PCH OOM cannot block the x64 installer.
-    if: ${{ !inputs.windows-android-only || matrix.job.platform != 'ARM64' }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     strategy:
       fail-fast: false
@@ -106,10 +102,6 @@ jobs:
           - {
               target: windows-2022,
               platform: x64,
-            }
-          - {
-              target: windows-11-arm,
-              platform: ARM64,
             }
     with:
       upload-artifact: ${{ inputs.upload-artifact }}
@@ -121,7 +113,6 @@ jobs:
   build-for-windows-flutter:
     name: ${{ matrix.job.target }}
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
-    if: ${{ !inputs.windows-android-only || matrix.job.arch != 'aarch64' }}
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
@@ -136,16 +127,6 @@ jobs:
               flutter-arch: x64,
               vcpkg-triplet: x64-windows-static,
               build-args: "--vram",
-            }
-          - {
-              target: aarch64-pc-windows-msvc,
-              os: windows-11-arm,
-              arch: aarch64,
-              flutter-arch: arm64,
-              vcpkg-triplet: arm64-windows-static,
-              # vram is x86/x64-only (NVENC needs CUDA, Intel MediaSDK needs __rdtsc);
-              # no NV/Intel/AMD hardware exists on Windows-on-ARM, so vram stays disabled here.
-              build-args: "",
             }
     steps:
       - name: Export GitHub Actions cache environment variables
