@@ -787,9 +787,8 @@ class _RemotePageState extends State<RemotePage>
       );
     }
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: Obx(() {
+    Widget sessionBody() {
+      return Obx(() {
         final imageReady = _ffi.ffiModel.pi.isSet.isTrue &&
             _ffi.ffiModel.waitForFirstImage.isFalse;
         if (imageReady) {
@@ -814,7 +813,48 @@ class _RemotePageState extends State<RemotePage>
           // The toolbar's block state won't work properly when reconnecting, but that's okay.
           return bodyWidget();
         }
-      }),
+      });
+    }
+
+    // DropTarget must wrap the whole remote window. Toolbar Overlay /
+    // BlockableOverlay sit above the canvas; desktop_drop hit-tests those
+    // siblings first and otherwise reports DROPEFFECT_NONE (the Ø cursor).
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: DropTarget(
+        onDragEntered: (_) {
+          if (mounted) setState(() => _fileDropHover = true);
+        },
+        onDragExited: (_) {
+          if (mounted) setState(() => _fileDropHover = false);
+        },
+        onDragDone: (detail) {
+          if (mounted) setState(() => _fileDropHover = false);
+          _handleRemoteFileDrop(detail);
+        },
+        child: Stack(
+          children: [
+            sessionBody(),
+            if (_fileDropHover)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    color: Colors.black45,
+                    alignment: Alignment.center,
+                    child: Text(
+                      translate('Transfer file'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1000,45 +1040,8 @@ class _RemotePageState extends State<RemotePage>
             QualityMonitor(_ffi.qualityMonitorModel), null, null),
       ),
     );
-    final body = Stack(
+    return Stack(
       children: paints,
-    );
-    if (_ffi.ffiModel.permissions['file'] == false) {
-      return body;
-    }
-    return DropTarget(
-      onDragEntered: (_) {
-        if (mounted) setState(() => _fileDropHover = true);
-      },
-      onDragExited: (_) {
-        if (mounted) setState(() => _fileDropHover = false);
-      },
-      onDragDone: (detail) {
-        if (mounted) setState(() => _fileDropHover = false);
-        _handleRemoteFileDrop(detail);
-      },
-      child: Stack(
-        children: [
-          body,
-          if (_fileDropHover)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  color: Colors.black45,
-                  alignment: Alignment.center,
-                  child: Text(
-                    translate('Transfer file'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
